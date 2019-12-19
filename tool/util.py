@@ -36,3 +36,4 @@ def reverse_complement (sequence):
         elif i == "G":
             reverse_complement_seq += "C"
     return reverse_complement_seq
+

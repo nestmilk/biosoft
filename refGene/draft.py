@@ -1,3 +1,6 @@
+from get_cds_for_ensembl_GRCh38_by_vep import get_mutation, RNAError
+from tool.util import translate, reverse_complement
+
 # def get_cds_by_mRNA1(query):
 #     name = ''
 #     chr = ''
@@ -85,17 +88,70 @@
 # line = read_chr("chr7")
 # print(line[55259513:55259515])
 
-from refGene.get_cds import mRNA
-from tool.util import translate
-rna1 = mRNA("ENST00000361452")
-cds1 = rna1.cds_seq
-print(cds1)
-cds1_before = cds1[:153]
-print(cds1_before)
-cds1_after = cds1[175:]
-print(cds1_after)
-print(translate(cds1_before + cds1_after))
+# from refGene.get_cds import mRNA
+# from tool.util import translate
+# rna1 = mRNA("ENST00000361452")
+# cds1 = rna1.cds_seq
+# print(cds1)
+# cds1_before = cds1[:153]
+# print(cds1_before)
+# cds1_after = cds1[175:]
+# print(cds1_after)
+# print(translate(cds1_before + cds1_after))
 
 # rna2 = mRNA("ENST00000397789")
 # cds2 = rna2.cds_seq
+
+
+
+with open('CaoGZ_HCC_output.vcf','r') as f, open('result.tsv', 'w') as r:
+    line_num = 1
+    for line in f:
+        if line.find("#") == -1:
+            line = line.strip("\n")
+            list = line.split('\t')
+            chr = list[0]
+            start = int(list[1])
+            ori = list[3]
+            sub = list[4]
+            CSQ_list = list[7].split(';')[-1].split(',')
+            line_num_add = False
+            for item in CSQ_list:
+                transcript_list = item.split("|")
+                symbol = transcript_list[3]
+                ensg = transcript_list[4]
+                enst = transcript_list[6]
+                reported_exon = transcript_list[8]
+                enst_version = transcript_list[10].split(":")[0] if transcript_list[10] else ""
+                reported_CHGVS = transcript_list[10].split(":")[1] if transcript_list[10] and len(transcript_list[10].split(":")) > 1 else ""
+                reported_PHGVS = transcript_list[11].split(":")[1] if transcript_list[11] and len(transcript_list[11].split(":")) > 1 else ""
+                if reported_PHGVS != "":
+                    try:
+                        list = get_mutation(enst, start, ori, sub, 15, 15)
+                        strand = list[0]
+                        chgvs = list[1]
+                        ori_seq = list[2]
+                        mut_seq = list[3]
+                        ori_aa = list[4]
+                        mut_aa = list[5]
+                        # finded_ori = list[2] if strand == "+" else reverse_complement(list[2])
+                    except RNAError as e:
+                        strand = "na"
+                        chgvs = str(e)
+                        ori_seq = "na"
+                        mut_seq = "na"
+                        ori_aa = "na"
+                        mut_aa = "na"
+                        # finded_ori = "na"
+                    # if strand != "na":
+                    r.write(str(line_num) + "\t" + symbol + "\t" + enst + "\t" + chr + "\t" +
+                            str(start) + "\t" + ori + "\t" + sub + "\t" +
+                            strand + "\t" + reported_CHGVS + "\t" + chgvs + "\t" +
+                            reported_PHGVS + "\t" + ori_seq + "\t" + mut_seq  + "\t" +
+                            ori_aa + "\t" + mut_aa + "\n")
+                    line_num_add = True
+            if line_num_add:
+                line_num += 1
+
+
 
